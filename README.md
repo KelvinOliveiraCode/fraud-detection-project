@@ -10,7 +10,7 @@
 
 <p align="center">
   <b>Projeto de Machine Learning para deteccao de fraudes em transacoes de cartao de credito</b><br>
-  Desenvolvido como projeto de conclusao de curso na plataforma <strong>DIO (Digital Innovation One)</strong>
+  Desenvolvido como projeto de conclusao de curso de Machine Learning
 </p>
 
 ---
@@ -316,7 +316,6 @@ O dataset sera baixado automaticamente na primeira execucao (~67MB).
 **Kelvin Oliveira**
 
 - GitHub: [@KelvinOliveiraCode](https://github.com/KelvinOliveiraCode)
-- Projeto desenvolvido para a plataforma [DIO - Digital Innovation One](https://www.dio.me/)
 
 ---
 
