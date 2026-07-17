@@ -316,6 +316,7 @@ O dataset sera baixado automaticamente na primeira execucao (~67MB).
 **Kelvin Oliveira**
 
 - GitHub: [@KelvinOliveiraCode](https://github.com/KelvinOliveiraCode)
+- Linkedin: [@Kelvin Oliveira](https://www.linkedin.com/in/kelvin-oliveira-0282033b4/)
 
 ---
 
