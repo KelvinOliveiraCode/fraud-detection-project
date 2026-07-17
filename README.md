@@ -25,6 +25,7 @@
 - [Como Usar](#como-usar)
 - [Passo a Passo do Desenvolvimento](#passo-a-passo-do-desenvolvimento)
 - [Resultados](#resultados)
+- [Como Reproduzir](#como-reproduzir)
 - [Autor](#autor)
 - [Licenca](#licenca)
 
@@ -81,24 +82,20 @@ O dataset utilizado e o **Credit Card Fraud Detection** da European Cardholders,
 ```
 fraud-detection-project/
 |
-|-- main.py                          # Pipeline completo (treinamento)
-|-- inspecionar_modelo.py            # Visualizacao dos resultados
-|-- README.md                        # Este arquivo
-|-- requirements.txt                 # Dependencias
-|
-|-- plots/                           # Visualizacoes geradas
-|   |-- 01_eda_basico.png
-|   |-- 02_correlacao.png
-|   |-- 03_resultados_finais.png
-|   |-- comparacao_modelos.png
-|   |-- comparacao_roc_auc.png
-|   |-- importancia_features.png
-|
-|-- modelo_randomforest.joblib       # Modelo treinado (exemplo)
-|-- scaler.joblib                    # Scaler ajustado
-|-- resultados_modelos.joblib        # Resultados comparativos
-|-- creditcard.csv                   # Dataset (baixado automaticamente)
+|-- main.py                    # Pipeline completo de treinamento
+|-- inspecionar_modelo.py      # Visualizacao dos resultados salvos
+|-- README.md                  # Documentacao
+|-- requirements.txt           # Dependencias
+|-- .gitignore                 # Arquivos ignorados pelo Git
+|-- LICENSE                    # Licenca MIT
 ```
+
+> **Arquivos gerados na execucao:**
+> - `creditcard.csv` — Dataset (baixado automaticamente, ~67MB)
+> - `plots/` — Graficos e visualizacoes
+> - `modelo_*.joblib` — Modelo treinado
+> - `scaler.joblib` — Scaler ajustado
+> - `resultados_modelos.joblib` — Metricas comparativas
 
 ---
 
@@ -149,12 +146,14 @@ python main.py
 O script ira:
 1. Baixar o dataset (se nao existir localmente)
 2. Realizar analise exploratoria (EDA)
-3. Pre-processar os dados
-4. Balancear as classes
-5. Treinar e comparar 3 modelos
-6. Selecionar o melhor modelo
+3. Pre-processar os dados (remover duplicatas, escalar)
+4. Balancear as classes (SMOTE ou class_weight)
+5. Treinar e comparar 3 modelos (LogisticRegression, RandomForest, ExtraTrees)
+6. Selecionar o melhor modelo por pontuacao ponderada
 7. Salvar artefatos (.joblib)
-8. Gerar visualizacoes
+8. Gerar visualizacoes na pasta `plots/`
+
+> **Tempo estimado:** ~3 a 8 minutos (dependendo da maquina)
 
 ### Visualizar resultados
 
@@ -168,7 +167,7 @@ Este script exibe:
 - Informacoes detalhadas do modelo vencedor
 - Tabela comparativa de todos os modelos
 - Importancia das features (com grafico)
-- Melhores hiperparametros
+- Melhores hiperparametros encontrados
 
 ---
 
@@ -183,9 +182,7 @@ O dataset apresenta um **desbalanceamento extremo**: apenas 0.17% das transacoes
 
 ### Fase 2: Analise Exploratoria (EDA)
 
-Realizada no modulo `explorar_dados()`:
-
-- **Distribuicao das classes**: Visualizacao do desbalanceamento
+- **Distribuicao das classes**: Visualizacao do desbalanceamento (284.315 vs 492)
 - **Matriz de correlacao**: Identificacao de features relevantes
 - **Analise de Amount**: Comparacao de valores entre classes
 - **Features V1-V28**: Histogramas das mais correlacionadas com fraude
@@ -197,24 +194,20 @@ Principais insights:
 
 ### Fase 3: Pre-processamento
 
-Modulo `preprocessar()`:
-
 1. **Remocao de duplicatas**: 1.081 linhas duplicadas removidas
-2. **Divisao estratificada**: 80% treino / 20% teste
+2. **Divisao estratificada**: 80% treino / 20% teste (mantem proporcao de fraudes)
 3. **RobustScaler**: Aplicado em `Amount` e `Time`
-   - Resistente a outliers (usa mediana e IQR)
-   - Evita vazamento de dados (fit apenas no treino)
+   - Resistente a outliers (usa mediana e IQR em vez de media/desvio)
+   - Evita vazamento de dados (fit apenas no conjunto de treino)
 
 ### Fase 4: Balanceamento
 
-Modulo `balancear_dados()`:
-
 Tecnica utilizada: **SMOTE** (Synthetic Minority Over-sampling Technique)
-- Gera amostras sinteticas da classe minoritaria
+- Gera amostras sinteticas da classe minoritaria (fraudes)
 - Cria ~227.000 novas amostras de fraude
 - Resultado: dataset balanceado 50/50
 
-> Se `imbalanced-learn` nao estiver instalado, usa `class_weight='balanced'` como fallback.
+> Se `imbalanced-learn` nao estiver instalado, usa `class_weight='balanced'` nos modelos como fallback.
 
 ### Fase 5: Modelagem
 
@@ -223,13 +216,14 @@ Tres modelos treinados com `RandomizedSearchCV`:
 | Modelo | Caracteristicas |
 |---|---|
 | **LogisticRegression** | Rapido, interpretavel, baseline solido |
-| **RandomForest** | Ensemble robusto, bom com outliers |
+| **RandomForest** | Ensemble robusto, bom com outliers, alta performance |
 | **ExtraTrees** | Variacao do RF, mais rapido, menos overfitting |
 
 **Otimizacao:**
-- `n_iter=5` combinacoes de hiperparametros
-- `StratifiedKFold` com 3 folds
+- `n_iter=5` combinacoes de hiperparametros por modelo
+- `StratifiedKFold` com 3 folds (mantem proporcao de classes)
 - Scoring: `f1` (otimiza equilibrio precision/recall)
+- Modelos leves: 30-50 arvores, profundidade maxima 10
 
 ### Fase 6: Avaliacao e Selecao
 
@@ -241,17 +235,17 @@ Score = Recall*0.4 + F1-Score*0.3 + Precision*0.2 + Accuracy*0.1
 
 | Prioridade | Peso | Justificativa |
 |---|---|---|
-| Recall | 40% | Nao perder fraudes e crucial |
-| F1-Score | 30% | Equilibrio geral |
-| Precision | 20% | Evitar falsos alarmes |
+| Recall | 40% | Nao perder fraudes e crucial em sistemas bancarios |
+| F1-Score | 30% | Equilibrio geral entre precision e recall |
+| Precision | 20% | Evitar falsos alarmes excessivos |
 | Accuracy | 10% | Menos relevante em dados desbalanceados |
 
 ### Fase 7: Salvamento
 
-Artefatos gerados:
+Artefatos gerados automaticamente:
 - `modelo_*.joblib` — Modelo treinado pronto para producao
-- `scaler.joblib` — Scaler para novas transacoes
-- `resultados_modelos.joblib` — Metricas comparativas
+- `scaler.joblib` — Scaler para preprocessar novas transacoes
+- `resultados_modelos.joblib` — Metricas comparativas de todos os modelos
 
 ---
 
@@ -277,45 +271,52 @@ Melhores hiperparametros:
 
 ### Comparacao de Modelos
 
-| Modelo | Accuracy | Precision | Recall | F1-Score | ROC AUC |
-|---|---|---|---|---|---|
-| LogisticRegression | 0.9752 | 0.0562 | **0.8737** | 0.1057 | 0.9657 |
-| RandomForest | **0.9994** | **0.8046** | 0.7368 | **0.8046** | 0.9445 |
-| ExtraTrees | 0.9987 | 0.6667 | 0.8000 | 0.6667 | **0.9621** |
+| Modelo | Accuracy | Precision | Recall | F1-Score | ROC AUC | Tempo |
+|---|---|---|---|---|---|---|
+| LogisticRegression | 0.9752 | 0.0562 | **0.8737** | 0.1057 | 0.9657 | ~4s |
+| **RandomForest** | **0.9994** | **0.8046** | 0.7368 | **0.8046** | 0.9445 | ~35s |
+| ExtraTrees | 0.9987 | 0.6667 | 0.8000 | 0.6667 | **0.9621** | ~3s |
 
-> **RandomForest** foi selecionado por apresentar o melhor equilibrio ponderado entre as metricas.
+> **RandomForest** foi selecionado por apresentar o melhor equilibrio ponderado entre as metricas, com excelente precision e F1-Score.
 
 ---
 
-## Prints do Projeto
+## Como Reproduzir
 
-### Distribuicao das Classes
-![Distribuicao](plots/01_eda_basico.png)
+Siga os passos abaixo para reproduzir o projeto em sua maquina:
 
-### Matriz de Correlacao
-![Correlacao](plots/02_correlacao.png)
+```bash
+# 1. Clone o repositorio
+git clone https://github.com/KelvinOliveiraCode/fraud-detection-project.git
 
-### Resultados Finais
-![Resultados](plots/03_resultados_finais.png)
+# 2. Entre na pasta
+cd fraud-detection-project
+
+# 3. Crie ambiente virtual (opcional mas recomendado)
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# 4. Instale dependencias
+pip install -r requirements.txt
+
+# 5. Execute o treinamento (~3-8 minutos)
+python main.py
+
+# 6. Visualize os resultados
+python inspecionar_modelo.py
+```
+
+O dataset sera baixado automaticamente na primeira execucao (~67MB).
 
 ---
 
 ## Autor
 
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/KelvinOliveiraCode">
-        <img src="https://github.com/KelvinOliveiraCode.png" width="100px;" alt="Kelvin Oliveira"/><br>
-        <sub><b>Kelvin Oliveira</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
+**Kelvin Oliveira**
 
-- **GitHub**: [@KelvinOliveiraCode](https://github.com/KelvinOliveiraCode)
-- **LinkedIn**: [kelvin-oliveira](https://www.linkedin.com/in/kelvin-oliveira/)
-- **Plataforma**: [DIO - Digital Innovation One](https://www.dio.me/)
+- GitHub: [@KelvinOliveiraCode](https://github.com/KelvinOliveiraCode)
+- Projeto desenvolvido para a plataforma [DIO - Digital Innovation One](https://www.dio.me/)
 
 ---
 
@@ -325,14 +326,6 @@ Este projeto esta licenciado sob a licenca MIT - veja o arquivo [LICENSE](LICENS
 
 ---
 
-## Agradecimentos
-
-- [DIO](https://www.dio.me/) pela oportunidade de aprendizado
-- [scikit-learn](https://scikit-learn.org/) pela excelente documentacao
-- [Kaggle](https://www.kaggle.com/) pelo dataset
-
----
-
 <p align="center">
-  Desenvolvido com <span style="color: #e74c3c;">&#10084;</span> para o curso da DIO
+  Desenvolvido com dedicacao para o curso da DIO
 </p>
